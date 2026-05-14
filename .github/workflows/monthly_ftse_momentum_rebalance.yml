@@ -1,0 +1,52 @@
+name: Monthly FTSE Momentum Rebalance
+
+on:
+  schedule:
+    # Runs on the 14th of each month at 08:00 UTC.
+    - cron: "0 8 14 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run-monthly-ftse-rebalance:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run monthly FTSE momentum rebalance
+        run: python monthly_ftse_momentum_rebalance.py
+
+      - name: Commit updated FTSE portfolio
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add portfolio_ftse.csv ftse_monthly_email.html
+          git diff --cached --quiet || git commit -m "Update FTSE momentum portfolio"
+          git push
+
+      - name: Send email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.MAIL_SERVER }}
+          server_port: ${{ secrets.MAIL_PORT }}
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "Monthly FTSE Momentum Rebalance"
+          to: ${{ secrets.MAIL_TO }}
+          from: ${{ secrets.MAIL_FROM }}
+          body: "Your email client does not support HTML."
+          html_body: file://ftse_monthly_email.html
