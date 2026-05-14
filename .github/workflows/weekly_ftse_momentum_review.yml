@@ -1,0 +1,42 @@
+name: Weekly FTSE Momentum Review
+
+on:
+  schedule:
+    # GitHub Actions cron uses UTC.
+    # 08:00 UTC = 09:00 UK time during GMT, 09:00 UK time during BST would be 08:00 UTC.
+    - cron: "0 8 * * 6"
+  workflow_dispatch:
+
+jobs:
+  run-weekly-ftse-review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run weekly FTSE momentum review
+        run: python weekly_ftse_momentum_review.py
+
+      - name: Send email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.MAIL_SERVER }}
+          server_port: ${{ secrets.MAIL_PORT }}
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "Weekly FTSE Momentum Review"
+          to: ${{ secrets.MAIL_TO }}
+          from: ${{ secrets.MAIL_FROM }}
+          body: "Your email client does not support HTML."
+          html_body: file://ftse_weekly_email.html
